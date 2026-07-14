@@ -1,0 +1,30 @@
+name: ci
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cli
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "stable"
+          cache-dependency-path: cli/go.sum
+      - run: test -z "$(gofmt -s -l .)"
+      - run: go vet ./...
+      - run: go test ./...
+
+  # The repo gates itself with its own action (spec §3: dogfood from day one).
+  dogfood:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./github-action

@@ -1,0 +1,28 @@
+# 3d-linter's own domain language (docs/SPEC.md §3), maintained in the
+# tool's own format — the repo eats its own dogfood from day one.
+scope:
+  exclude:
+    - "docs/**" # the spec must quote forbidden words to define them
+terms:
+  - use: glossary
+    avoid: [dictionary]
+    definition: The versioned YAML file in the repo defining Terms. The single source of truth.
+  - use: term
+    definition: One canonical concept — a use name, its avoid list, an optional reason and definition.
+  - use: avoid list
+    avoid: [blacklist, denylist]
+    definition: The forbidden synonyms for a Term. Matching is exact-token, never semantic.
+  - use: finding
+    avoid: [violation]
+    definition: One flagged occurrence — file, line, matched token, the canonical Term, the reason.
+    reason: findings in advisory surfaces are not failures
+  - use: gate
+    definition: The deterministic PR check that fails when Findings exist in the diff. Never AI.
+  - use: advisor
+    definition: The paid, out-of-band AI layer producing suggestions. Never blocks.
+  - use: rule pack
+    avoid: [plugin]
+    definition: A pluggable family of deterministic checks the engine runs (vocabulary is #1).
+    reason: plugin implies third-party extensibility, which is not promised
+  - use: suppression
+    definition: An inline opt-out (3dl:allow) that requires a reason string.

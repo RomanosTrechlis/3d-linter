@@ -1,0 +1,46 @@
+name: "3D-Linter"
+description: "Deterministic domain-vocabulary gate: fail the PR when it introduces terms your glossary says to avoid."
+branding:
+  icon: "book-open"
+  color: "purple"
+
+inputs:
+  base:
+    description: >-
+      Git base ref for diff-only mode. Defaults to the PR base branch; when
+      empty (e.g. on push), the whole tree is gated instead.
+    default: ${{ github.base_ref }}
+  format:
+    description: "Output format: github (inline PR annotations), text, json, or sarif."
+    default: "github"
+  args:
+    description: "Extra arguments passed to `3dl check` verbatim (e.g. --strings, --glossary path)."
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-go@v5
+      with:
+        go-version: "stable"
+        cache: false
+
+    - name: Build 3dl
+      shell: bash
+      working-directory: ${{ github.action_path }}/../cli
+      run: go build -o "$RUNNER_TEMP/3dl" ./cmd/3dl
+
+    - name: Run the gate
+      shell: bash
+      env:
+        BASE: ${{ inputs.base }}
+        FORMAT: ${{ inputs.format }}
+        EXTRA: ${{ inputs.args }}
+      run: |
+        if [ -n "$BASE" ]; then
+          # Make sure the base branch exists locally for merge-base/diff.
+          git fetch --no-tags origin "+refs/heads/$BASE:refs/remotes/origin/$BASE" 2>/dev/null || true
+          "$RUNNER_TEMP/3dl" check --diff "origin/$BASE" --format "$FORMAT" $EXTRA
+        else
+          "$RUNNER_TEMP/3dl" check --format "$FORMAT" $EXTRA
+        fi

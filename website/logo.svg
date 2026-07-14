@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="3D-Linter">
+  <defs>
+    <linearGradient id="lg" gradientUnits="userSpaceOnUse" x1="5" y1="5" x2="43" y2="43">
+      <stop offset="0" stop-color="#a78bfa"/>
+      <stop offset="1" stop-color="#7c5cf0"/>
+    </linearGradient>
+  </defs>
+  <!-- speech bubble: the language -->
+  <path d="M14,5 H34 A9,9 0 0 1 43,14 V26 A9,9 0 0 1 34,35 H22 L15,43 V35 H14 A9,9 0 0 1 5,26 V14 A9,9 0 0 1 14,5 Z"
+        fill="#151a24" stroke="url(#lg)" stroke-width="2.6" stroke-linejoin="round"/>
+  <!-- the avoided term, struck out -->
+  <line x1="15" y1="16" x2="27" y2="16" stroke="#8b96ab" stroke-width="3.2" stroke-linecap="round"/>
+  <line x1="24.5" y1="11.5" x2="16.5" y2="20.5" stroke="#f87171" stroke-width="2.4" stroke-linecap="round"/>
+  <!-- the canonical term -->
+  <line x1="15" y1="25.5" x2="33" y2="25.5" stroke="url(#lg)" stroke-width="3.2" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,2 @@
+# N1 determinism: identical bytes on every OS, so golden files never flap.
+* text=auto eol=lf

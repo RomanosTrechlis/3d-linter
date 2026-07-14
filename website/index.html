@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D-Linter — your domain language, enforced</title>
+<meta name="description" content="3D-Linter reads your team's glossary from the repo and fails pull requests that introduce the terms you agreed to avoid. Deterministic, offline, sub-second.">
+<link rel="icon" type="image/svg+xml" href="logo.svg">
+<style>
+  :root {
+    --bg: #0d1017;
+    --panel: #151a24;
+    --panel-2: #1a2130;
+    --line: #2a3347;
+    --text: #dbe2ee;
+    --muted: #8b96ab;
+    --accent: #a78bfa;
+    --accent-2: #7c5cf0;
+    --good: #4ade80;
+    --bad: #f87171;
+    --mono: ui-monospace, "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 17px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px; }
+  header.site {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 0; border-bottom: 1px solid var(--line);
+  }
+  .logo { display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-weight: 700; font-size: 18px; color: var(--text); }
+  .logo b { color: var(--accent); }
+  .logo svg { display: block; }
+  nav a { color: var(--muted); margin-left: 22px; font-size: 15px; }
+  nav a:hover { color: var(--text); text-decoration: none; }
+
+  .hero { padding: 88px 0 56px; text-align: center; }
+  .hero h1 { font-size: clamp(34px, 5.5vw, 56px); line-height: 1.12; letter-spacing: -0.02em; }
+  .hero h1 em { font-style: normal; color: var(--accent); }
+  .hero p.sub {
+    margin: 22px auto 0; max-width: 640px; color: var(--muted); font-size: 19px;
+  }
+  .hero .tagline {
+    display: inline-block; margin-bottom: 26px; padding: 6px 14px;
+    border: 1px solid var(--line); border-radius: 999px;
+    color: var(--muted); font-size: 14px;
+  }
+  .cta { margin-top: 34px; display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-block; padding: 12px 22px; border-radius: 8px; font-weight: 600; font-size: 16px;
+  }
+  .btn.primary { background: var(--accent-2); color: #fff; }
+  .btn.primary:hover { background: var(--accent); text-decoration: none; }
+  .btn.ghost { border: 1px solid var(--line); color: var(--text); }
+  .btn.ghost:hover { border-color: var(--accent); text-decoration: none; }
+
+  section { padding: 64px 0; border-top: 1px solid var(--line); }
+  h2 { font-size: 30px; letter-spacing: -0.01em; margin-bottom: 10px; }
+  .lead { color: var(--muted); max-width: 720px; margin-bottom: 36px; }
+
+  .story {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 28px 30px; max-width: 780px; margin: 0 auto;
+  }
+  .story h3 { margin-bottom: 12px; font-size: 20px; }
+  .story p { color: var(--muted); margin-bottom: 12px; }
+  .story p:last-child { margin-bottom: 0; }
+  .story strong { color: var(--text); }
+  .story .moral { color: var(--accent); font-weight: 600; }
+
+  .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  @media (max-width: 800px) { .cols { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 22px;
+  }
+  .card .step { color: var(--accent); font-family: var(--mono); font-size: 13px; }
+  .card h3 { margin: 6px 0 10px; font-size: 19px; }
+  .card p { color: var(--muted); font-size: 15px; }
+
+  pre {
+    background: #0a0d13; border: 1px solid var(--line); border-radius: 10px;
+    padding: 16px 18px; overflow-x: auto; font-family: var(--mono);
+    font-size: 13.5px; line-height: 1.6; margin-top: 14px;
+  }
+  code { font-family: var(--mono); font-size: 0.92em; color: var(--accent); }
+  pre code { color: var(--text); }
+  .c-key { color: #7dd3fc; } .c-str { color: #bef264; } .c-com { color: #64748b; }
+  .c-err { color: var(--bad); font-weight: 600; } .c-ok { color: var(--good); }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+  th, td { text-align: left; padding: 14px 16px; border: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--panel-2); font-size: 15px; }
+  td { color: var(--muted); font-size: 15px; }
+  td b { color: var(--text); }
+  .free th:nth-child(2), .free td:nth-child(2) { width: 44%; }
+
+  .law {
+    text-align: center; font-size: clamp(22px, 3.4vw, 32px); font-weight: 700;
+    letter-spacing: -0.01em; max-width: 760px; margin: 0 auto 14px;
+  }
+  .law em { font-style: normal; color: var(--accent); }
+  .law-sub { text-align: center; color: var(--muted); max-width: 680px; margin: 0 auto; }
+
+  ul.checks { list-style: none; margin-top: 18px; }
+  ul.checks li { padding-left: 30px; position: relative; margin-bottom: 14px; color: var(--muted); }
+  ul.checks li::before { content: "✓"; position: absolute; left: 0; color: var(--good); font-weight: 700; }
+  ul.checks li b { color: var(--text); }
+
+  .surfaces { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-top: 24px; }
+  .surface {
+    border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; background: var(--panel);
+  }
+  .surface .name { font-weight: 600; }
+  .surface .when { font-size: 13px; margin-top: 4px; }
+  .surface .when.now { color: var(--good); }
+  .surface .when.soon { color: var(--muted); }
+
+  footer { border-top: 1px solid var(--line); padding: 36px 0 48px; color: var(--muted); font-size: 14.5px; }
+  footer .wrap { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="site">
+    <div class="logo" title="3D, as in Domain-Driven Design">
+      <svg width="28" height="28" viewBox="0 0 48 48" aria-hidden="true">
+        <defs>
+          <linearGradient id="lg" gradientUnits="userSpaceOnUse" x1="5" y1="5" x2="43" y2="43">
+            <stop offset="0" stop-color="#a78bfa"/>
+            <stop offset="1" stop-color="#7c5cf0"/>
+          </linearGradient>
+        </defs>
+        <path d="M14,5 H34 A9,9 0 0 1 43,14 V26 A9,9 0 0 1 34,35 H22 L15,43 V35 H14 A9,9 0 0 1 5,26 V14 A9,9 0 0 1 14,5 Z"
+              fill="#151a24" stroke="url(#lg)" stroke-width="2.6" stroke-linejoin="round"/>
+        <line x1="15" y1="16" x2="27" y2="16" stroke="#8b96ab" stroke-width="3.2" stroke-linecap="round"/>
+        <line x1="24.5" y1="11.5" x2="16.5" y2="20.5" stroke="#f87171" stroke-width="2.4" stroke-linecap="round"/>
+        <line x1="15" y1="25.5" x2="33" y2="25.5" stroke="url(#lg)" stroke-width="3.2" stroke-linecap="round"/>
+      </svg>
+      <span>3<b>d</b>-linter</span>
+    </div>
+    <nav>
+      <a href="#how">How it works</a>
+      <a href="#law">The law</a>
+      <a href="#start">Get started</a>
+      <a href="https://github.com/RomanosTrechlis/3d-linter">GitHub</a>
+    </nav>
+  </header>
+
+  <div class="hero">
+    <span class="tagline">Vale for your domain language — with teeth</span>
+    <h1>The vocabulary your team agreed on.<br><em>Enforced on every pull request.</em></h1>
+    <p class="sub">
+      3D-Linter reads a <code>.glossary.yml</code> from your repo and fails PRs that introduce
+      the terms you agreed to avoid — in identifiers, comments, and docs.
+      Deterministic, offline, sub-second.
+    </p>
+    <div class="cta">
+      <a class="btn primary" href="#start">Gate a repo in 15 minutes</a>
+      <a class="btn ghost" href="https://github.com/RomanosTrechlis/3d-linter">Source &amp; docs</a>
+    </div>
+  </div>
+</div>
+
+<section id="why">
+  <div class="wrap">
+    <div class="story">
+      <h3>Why this exists: the streak bug</h3>
+      <p>
+        A habit-tracking app had a glossary with one ambiguous term: <strong>“streak.”</strong>
+        An engineer implemented it as <strong>consecutive days with a vice mark</strong> —
+        an app that rewarded seven days of failure in a row. The feature shipped, had to be renamed
+        (“Engagement Streak”), and re-implemented.
+      </p>
+      <p>
+        The glossary existed. The definition was written down. Nothing enforced it.
+      </p>
+      <p class="moral">Vocabulary drift is a defect class, not a style nit.</p>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <h2>How it works</h2>
+    <p class="lead">
+      Domain-Driven Design calls it the ubiquitous language; every team that cares about naming
+      keeps the artifact either way — a glossary of canonical terms in a wiki that nothing reads.
+      3D-Linter moves it into the repo and wires it to CI.
+    </p>
+    <div class="cols">
+      <div class="card">
+        <span class="step">1 — declare</span>
+        <h3>Write the glossary</h3>
+        <p>Canonical terms, the synonyms to avoid, and the reason — versioned and code-reviewed like everything else.</p>
+<pre><code><span class="c-key">terms:</span>
+  - <span class="c-key">use:</span> practitioner
+    <span class="c-key">avoid:</span> [user, customer]
+    <span class="c-key">reason:</span> <span class="c-str">'"user" is too generic,
+      "customer" implies payment'</span></code></pre>
+      </div>
+      <div class="card">
+        <span class="step">2 — gate</span>
+        <h3>Fail the PR, precisely</h3>
+        <p>Only lines the PR introduces are gated. Pre-existing code and third-party APIs never turn red.</p>
+<pre><code><span class="c-err">✗ signup.go:42</span>
+introduces <span class="c-err">"user"</span> — glossary
+says <span class="c-ok">"practitioner"</span>:
+<span class="c-com">"user" is too generic</span></code></pre>
+      </div>
+      <div class="card">
+        <span class="step">3 — evolve</span>
+        <h3>Let it accumulate</h3>
+        <p>Opt-outs need a written reason, so exceptions stay visible. The glossary grows into a reasoned record of what words mean here.</p>
+<pre><code>id := u.ID <span class="c-com">// 3dl:allow user
+   -- passport API field</span></code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="precision">
+  <div class="wrap">
+    <h2>Built to survive week one</h2>
+    <p class="lead">A linter that is wrong too often gets deleted. Precision beats recall in every v0 decision:</p>
+    <ul class="checks">
+      <li><b>Diff-only by default.</b> Installing the gate on a ten-year-old codebase produces zero Findings until someone introduces a term. A full-repo <code>3dl audit</code> is a separate, explicit, advisory command.</li>
+      <li><b>Exact-token matching only.</b> Case variants and trivial plurals — no stemming, no fuzzy matching, no embeddings deciding whether your build fails.</li>
+      <li><b>Suppressions carry reasons.</b> <code>3dl:allow</code> without a written justification doesn't count, and suppression counts stay in the report.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="law">
+  <div class="wrap">
+    <p class="law">The gate is <em>deterministic</em>.<br>AI is <em>advisory</em>.</p>
+    <p class="law-sub">
+      Same input, same verdict, every run, offline — that's what a merge-blocking check owes you.
+      No LLM ever sits in the blocking path.
+    </p>
+    <table class="free">
+      <tr>
+        <th></th>
+        <th>The Gate — free, forever</th>
+        <th>The Advisor — paid, planned</th>
+      </tr>
+      <tr>
+        <td><b>What</b></td>
+        <td>CLI + GitHub Action: avoid-list enforcement on PR diffs, full-repo audit, suppressions, SARIF/JSON output.</td>
+        <td><code>bootstrap</code> drafts a glossary from your codebase; semantic-drift PR comments; maintenance reports.</td>
+      </tr>
+      <tr>
+        <td><b>Blocks merges?</b></td>
+        <td>Yes — reproducibly.</td>
+        <td>Never. Suggestions only.</td>
+      </tr>
+      <tr>
+        <td><b>Network</b></td>
+        <td>Zero calls. No telemetry, no accounts, no server.</td>
+        <td>Your own LLM API key. Your code never transits ours.</td>
+      </tr>
+    </table>
+  </div>
+</section>
+
+<section id="start">
+  <div class="wrap">
+    <h2>Get started</h2>
+    <p class="lead">One command scaffolds the glossary and the workflow; the first PR is gated minutes later.</p>
+<pre><code><span class="c-com"># install</span>
+go install github.com/RomanosTrechlis/3d-linter/cli/cmd/3dl@latest
+
+<span class="c-com"># scaffold .glossary.yml + .github/workflows/3dl.yml</span>
+3dl init
+
+<span class="c-com"># check locally, exactly like CI will</span>
+3dl check --diff main</code></pre>
+    <p style="margin-top:26px; color: var(--muted);">Or wire the Action directly:</p>
+<pre><code><span class="c-key">on:</span> pull_request
+<span class="c-key">jobs:</span>
+  <span class="c-key">vocabulary:</span>
+    <span class="c-key">runs-on:</span> ubuntu-latest
+    <span class="c-key">steps:</span>
+      - <span class="c-key">uses:</span> actions/checkout@v4
+        <span class="c-key">with:</span> { <span class="c-key">fetch-depth:</span> 0 }
+      - <span class="c-key">uses:</span> RomanosTrechlis/3d-linter/github-action@master</code></pre>
+
+    <div class="surfaces">
+      <div class="surface"><div class="name">Go CLI</div><div class="when now">available</div></div>
+      <div class="surface"><div class="name">GitHub Action</div><div class="when now">available</div></div>
+      <div class="surface"><div class="name">GitLab CI</div><div class="when soon">planned</div></div>
+      <div class="surface"><div class="name">Jenkins</div><div class="when soon">planned</div></div>
+      <div class="surface"><div class="name">pre-commit</div><div class="when soon">planned</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <h2>Fits what you already run</h2>
+    <ul class="checks">
+      <li><b>Using Contextive?</b> Keep it. Contextive teaches the language in your editor; 3D-Linter enforces it at the gate. Glossary import is on the roadmap so one file can feed both.</li>
+      <li><b>Using Vale?</b> Different job: Vale lints prose style in docs. 3D-Linter lints domain vocabulary everywhere — identifiers included.</li>
+      <li><b>Using an AI reviewer?</b> Also fine. It suggests; this gate decides. A blocking check must give the same verdict every run — that's the whole design.</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>© 2026 GuildMark — deterministic gates, AI advisors.</div>
+    <div><a href="https://github.com/RomanosTrechlis/3d-linter">GitHub</a></div>
+  </div>
+</footer>
+
+</body>
+</html>
