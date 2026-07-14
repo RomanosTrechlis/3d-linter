@@ -1,0 +1,48 @@
+name: deploy website (Hostinger)
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "website/**"
+  workflow_dispatch: # manual first deploy / redeploy
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Package the site (static — nothing to build)
+        run: |
+          mkdir -p deploy
+          cp -r website/* deploy/
+          rm -f deploy/README.md
+          ls -lh deploy
+
+      - name: Upload to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOSTINGER_HOST }}
+          username: ${{ secrets.HOSTINGER_USERNAME }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          port: ${{ secrets.HOSTINGER_PORT }}
+          source: "deploy/*"
+          target: "/srv/apps/3d-linter"
+          rm: true
+          strip_components: 1
+
+      - name: Publish to web root
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOSTINGER_HOST }}
+          username: ${{ secrets.HOSTINGER_USERNAME }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          port: ${{ secrets.HOSTINGER_PORT }}
+          script: |
+            set -e
+            mkdir -p /var/www/3d-linter
+            rm -rf /var/www/3d-linter/*
+            cp -r /srv/apps/3d-linter/* /var/www/3d-linter/
+            rm -rf /srv/apps/3d-linter
+            echo "website published to /var/www/3d-linter"
