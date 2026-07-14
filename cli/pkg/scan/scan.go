@@ -53,6 +53,7 @@ var skipDirs = map[string]bool{
 	".git": true, ".hg": true, ".svn": true,
 	"node_modules": true, "vendor": true, "testdata": true,
 	"dist": true, "build": true, "target": true, "__pycache__": true,
+	".svelte-kit": true, ".next": true, ".nuxt": true, // framework build output
 }
 
 // SkipDir reports whether a directory name is never scanned (also used by
@@ -92,7 +93,10 @@ func Walk(root string, opt Options) (*Model, error) {
 	m := &Model{Root: root}
 	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
-			return err
+			if path == root {
+				return err // a missing root is a real error, not a skippable file
+			}
+			return nil // unreadable entries (sockets, locks) are not repo content
 		}
 		name := d.Name()
 		if d.IsDir() {
@@ -111,7 +115,7 @@ func Walk(root string, opt Options) (*Model, error) {
 		}
 		data, err := os.ReadFile(path)
 		if err != nil {
-			return err
+			return nil // special or unreadable file — skip, don't abort the scan
 		}
 		if bytes.IndexByte(data[:min(len(data), 8000)], 0) >= 0 {
 			return nil // binary

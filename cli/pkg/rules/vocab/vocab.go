@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
@@ -88,7 +89,10 @@ func Discover(root string) ([]*Glossary, error) {
 	var gs []*Glossary
 	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
-			return err
+			if path == root {
+				return err
+			}
+			return nil // unreadable entries are not repo content
 		}
 		if d.IsDir() {
 			if path != root && scan.SkipDir(d.Name()) {
@@ -266,10 +270,8 @@ func allowFor(allows []scan.Allow, tok scan.Token) *scan.Allow {
 		if a.Line != tok.Line {
 			continue
 		}
-		for _, v := range variants(scan.Key(a.Word)) {
-			if v == tok.Key {
-				return a
-			}
+		if slices.Contains(variants(scan.Key(a.Word)), tok.Key) {
+			return a
 		}
 	}
 	return nil
