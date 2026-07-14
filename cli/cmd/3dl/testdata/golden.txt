@@ -1,0 +1,10 @@
+black_list.py:1:1: "black_list" is on the avoid list — use "avoid list" [vocab]
+black_list.py:1:33: "blacklist" is on the avoid list — use "avoid list" [vocab]
+main.go:3:7: "User" is on the avoid list — use "practitioner": too narrow for our domain [vocab]
+main.go:3:28: "customer" is on the avoid list — use "practitioner": too narrow for our domain [vocab]
+main.go:4:9: "User" is on the avoid list — use "practitioner": too narrow for our domain [vocab]
+main.go:6:9: "customer" is on the avoid list — use "practitioner": too narrow for our domain [suppression ignored — a reason is required: 3dl:allow customer -- why] [vocab]
+notes.md:3:1: "Users" is on the avoid list — use "practitioner": too narrow for our domain [vocab]
+notes.md:3:22: "diary" is on the avoid list — use "journal" [vocab]
+sub/svc.go:3:8: "client" is on the avoid list — use "practitioner" [vocab]
+9 finding(s), 1 suppressed

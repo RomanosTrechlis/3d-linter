@@ -1,0 +1,13 @@
+scope:
+  exclude:
+    - "skipme/**"
+terms:
+  - use: practitioner
+    avoid: [user, customer]
+    reason: too narrow for our domain
+  - use: avoid list
+    avoid: [blacklist]
+  - use: journal
+    avoid: [diary]
+    scope:
+      include: ["**/*.md"]

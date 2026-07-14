@@ -1,3 +1,5 @@
+# built binaries only — never a bare "3dl", it would match the cli/cmd/3dl source dir
 *.exe
-3dl
+/3dl
+cli/3dl
 dist/
