@@ -127,7 +127,8 @@ type hit struct {
 // Pack implements engine.Pack for the vocabulary rules.
 type Pack struct {
 	glossaries []*Glossary
-	matchers   []map[string]hit // parallel to glossaries
+	matchers   []map[string]hit  // parallel to glossaries
+	useKeys    []map[string]bool // parallel: normalized canonical `use` terms
 }
 
 // New builds the pack, pre-compiling one variant→term index per glossary.
@@ -135,8 +136,10 @@ func New(gs []*Glossary) *Pack {
 	p := &Pack{glossaries: gs}
 	for _, g := range gs {
 		m := map[string]hit{}
+		uk := map[string]bool{}
 		for i := range g.Terms {
 			t := &g.Terms[i]
+			uk[scan.Key(t.Use)] = true
 			for _, w := range t.Avoid {
 				for _, v := range variants(scan.Key(w)) {
 					if _, dup := m[v]; !dup {
@@ -146,6 +149,7 @@ func New(gs []*Glossary) *Pack {
 			}
 		}
 		p.matchers = append(p.matchers, m)
+		p.useKeys = append(p.useKeys, uk)
 	}
 	return p
 }
@@ -165,9 +169,12 @@ func (p *Pack) Check(m *scan.Model) (findings, suppressed []engine.Finding) {
 		if !g.Scope.Match(rel) {
 			continue
 		}
-		for _, tok := range f.Tokens {
+		for i, tok := range f.Tokens {
 			h, ok := matcher[tok.Key]
 			if !ok || !h.term.Scope.Match(rel) {
+				continue
+			}
+			if p.partOfUseTerm(gi, f.Tokens, i) {
 				continue
 			}
 			fd := engine.Finding{
@@ -212,6 +219,46 @@ func relTo(dir, path string) string {
 	return strings.TrimPrefix(path, dir+"/")
 }
 
+// partOfUseTerm reports whether the token sits inside one of this glossary's
+// canonical `use` terms, so canonical usage is never flagged: with
+// `use: vice mark` + `avoid: [mark]`, both `viceMark` and prose "vice mark"
+// pass while a bare "mark" still fails.
+// ponytail: exact identifier + adjacent word pairs only; 3+-word prose terms
+// wait for real demand.
+func (p *Pack) partOfUseTerm(gi int, toks []scan.Token, i int) bool {
+	uk := p.useKeys[gi]
+	tok := toks[i]
+	// The whole identifier is a canonical term (addViceMark handled below).
+	if tok.Parent != "" && uk[tok.Parent] {
+		return true
+	}
+	// Pairs: an adjacent sibling word — same identifier (gap 0–1 across a
+	// case/-/_ boundary) or same prose line (gap 1, the space).
+	for _, j := range []int{i - 1, i + 1} {
+		if j < 0 || j >= len(toks) {
+			continue
+		}
+		n := toks[j]
+		if n.Line != tok.Line || n.Parent != tok.Parent {
+			continue
+		}
+		first, second := n, tok
+		if j > i {
+			first, second = tok, n
+		}
+		gap := second.Col - (first.Col + len(first.Text))
+		if gap < 0 || gap > 1 {
+			continue
+		}
+		for _, v := range variants(first.Key + second.Key) {
+			if uk[v] {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // allowFor returns the first suppression on the token's line that names it.
 func allowFor(allows []scan.Allow, tok scan.Token) *scan.Allow {
 	for i := range allows {
@@ -232,18 +279,27 @@ func allowFor(allows []scan.Allow, tok scan.Token) *scan.Allow {
 // (F5: `user`/`users` — nothing fancier, precision over recall).
 // ponytail: s/es/ies only; stemming is explicitly out of scope forever.
 func variants(k string) []string {
-	set := []string{k, k + "s", k + "es"}
+	set := []string{k, k + "s"}
+	if sibilant(k) {
+		set = append(set, k+"es") // box → boxes, but never tim → times
+	}
 	switch {
 	case strings.HasSuffix(k, "ies"):
 		set = append(set, k[:len(k)-3]+"y")
 	case strings.HasSuffix(k, "y"):
 		set = append(set, k[:len(k)-1]+"ies")
 	}
-	if strings.HasSuffix(k, "es") {
+	if strings.HasSuffix(k, "es") && sibilant(k[:len(k)-2]) {
 		set = append(set, k[:len(k)-2])
 	}
 	if strings.HasSuffix(k, "s") && !strings.HasSuffix(k, "ss") {
 		set = append(set, k[:len(k)-1])
 	}
 	return set
+}
+
+// sibilant reports whether a word forms its plural with "es".
+func sibilant(k string) bool {
+	return strings.HasSuffix(k, "s") || strings.HasSuffix(k, "x") || strings.HasSuffix(k, "z") ||
+		strings.HasSuffix(k, "ch") || strings.HasSuffix(k, "sh")
 }

@@ -22,6 +22,39 @@ func TestVariants(t *testing.T) {
 	if slices.Contains(variants("address"), "addres") {
 		t.Error(`"ss" words must not be singularized`)
 	}
+	if slices.Contains(variants("tim"), "times") {
+		t.Error(`"es" plurals only after sibilants — "tim" must not expand to "times"`)
+	}
+}
+
+func TestCanonicalUseTermProtection(t *testing.T) {
+	g := &Glossary{Terms: []Term{
+		{Use: "vice mark", Avoid: []string{"mark"}},
+	}}
+	p := New([]*Glossary{g})
+	m := &scan.Model{Files: []scan.File{{
+		Path: "a.go",
+		Tokens: []scan.Token{
+			// prose "Vice mark" — adjacent words, single space
+			{Text: "Vice", Key: "vice", Line: 1, Col: 4},
+			{Text: "mark", Key: "mark", Line: 1, Col: 9},
+			// identifier viceMark — segments + compound
+			{Text: "vice", Key: "vice", Line: 2, Col: 1, Parent: "vicemark"},
+			{Text: "Mark", Key: "mark", Line: 2, Col: 5, Parent: "vicemark"},
+			{Text: "viceMark", Key: "vicemark", Line: 2, Col: 1},
+			// identifier addViceMarks — canonical term inside a longer name, plural
+			{Text: "add", Key: "add", Line: 3, Col: 1, Parent: "addvicemarks"},
+			{Text: "Vice", Key: "vice", Line: 3, Col: 4, Parent: "addvicemarks"},
+			{Text: "Marks", Key: "marks", Line: 3, Col: 8, Parent: "addvicemarks"},
+			{Text: "addViceMarks", Key: "addvicemarks", Line: 3, Col: 1},
+			// a bare "mark" — this one must still flag
+			{Text: "mark", Key: "mark", Line: 4, Col: 1},
+		},
+	}}}
+	findings, _ := p.Check(m)
+	if len(findings) != 1 || findings[0].Line != 4 {
+		t.Fatalf("want exactly the bare mark on line 4 flagged, got %+v", findings)
+	}
 }
 
 func tok(key string, line int) scan.Token {

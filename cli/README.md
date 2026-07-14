@@ -40,6 +40,8 @@ terms:
 
 Matching covers identifiers in any language (`camelCase`, `snake_case`, `kebab-case`, `PascalCase` are split into words; compound forms match too, so avoiding `blacklist` also flags `black_list`) and prose in comments and Markdown. <!-- 3dl:allow blacklist -- the docs must name the example -->
 
+Words inside one of your own canonical `use` terms are never flagged: with `use: vice mark` + `avoid: [mark]`, both `viceMark` and prose "vice mark" pass while a bare `mark` still fails.
+
 > That HTML comment above is a live suppression — this repo gates itself with its own glossary.
 
 ## Suppressions

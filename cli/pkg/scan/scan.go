@@ -29,10 +29,11 @@ type File struct {
 // with separators collapsed ("black_list" → key "blacklist") so compound
 // avoid terms match too.
 type Token struct {
-	Text string // as written in the source
-	Key  string // lowercased, separators removed — what matching runs on
-	Line int    // 1-based
-	Col  int    // 1-based byte column
+	Text   string // as written in the source
+	Key    string // lowercased, separators removed — what matching runs on
+	Line   int    // 1-based
+	Col    int    // 1-based byte column
+	Parent string // for identifier sub-words: the whole identifier's key ("" otherwise)
 }
 
 // Allow is one inline suppression: `3dl:allow word -- reason` (F7).
@@ -211,15 +212,16 @@ func tokenize(line string, ln int) []Token {
 			out = append(out, Token{Text: raw, Key: strings.ToLower(raw), Line: ln, Col: loc[0] + 1})
 			continue
 		}
+		compound := Key(raw)
 		for _, w := range words {
 			out = append(out, Token{
 				Text: raw[w.start:w.end], Key: strings.ToLower(raw[w.start:w.end]),
-				Line: ln, Col: loc[0] + w.start + 1,
+				Line: ln, Col: loc[0] + w.start + 1, Parent: compound,
 			})
 		}
 		// The compound form catches multi-word avoid terms in identifiers:
 		// avoid "blacklist" must match `black_list` and `blackList`.
-		out = append(out, Token{Text: raw, Key: Key(raw), Line: ln, Col: loc[0] + 1})
+		out = append(out, Token{Text: raw, Key: compound, Line: ln, Col: loc[0] + 1})
 	}
 	return out
 }
