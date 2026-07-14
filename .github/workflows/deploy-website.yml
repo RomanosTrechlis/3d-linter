@@ -41,7 +41,6 @@ jobs:
           port: ${{ secrets.HOSTINGER_PORT }}
           script: |
             set -e
-            mkdir -p /var/www/3d-linter
             rm -rf /var/www/3d-linter/*
             cp -r /srv/apps/3d-linter/* /var/www/3d-linter/
             rm -rf /srv/apps/3d-linter
